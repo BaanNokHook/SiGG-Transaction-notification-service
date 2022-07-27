@@ -20,11 +20,11 @@ test('Handles HTML response body', () => {
 </head>   
 <body></body>  
 </html>`);  
-      const option = { method: 'GET', path: 'http://fake-url.com' };  
-      return doRequest(options).then(res => { 
-            expect(res).toBeNull();  
+      const options = { method: 'GET', path: 'http://fake-url.com' };
+      return doRequest(options).then(res => {
+      expect(res).toBeNull();
+      });
       }); 
-});  
 
 test('Handles bad JSON', () => {
       fetch.mockResponseOnce('{"badjson": "very incorrect"');  
