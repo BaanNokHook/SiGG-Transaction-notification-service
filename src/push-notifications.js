@@ -473,7 +473,7 @@ export class Client {
                   `Interest is longer than the maximum of ${MAX_INTEREST_LENGTH} chars`
             );
             }
-            };
+            }
 
             async function getServiceWorkerRegistration() {
             // Check that service worker file exists
@@ -534,6 +534,6 @@ export class Client {
             );
             }
             return isSupported;
-            }
+      }
 
             export { TokenProvider };
