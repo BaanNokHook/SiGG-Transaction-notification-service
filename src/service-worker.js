@@ -2,181 +2,173 @@
 import doRequest from './do-request';
 import DeviceStateStore from './device-state-store';
 
-self.PusherPushNotifications = {   
-  enkdpointOveride: null,  
-  onNotificationReceived: null,  
+self.PusherPushNotifications = {
+  endpointOverride: null,
+  onNotificationReceived: null,
 
-  _endpoint: instanceId => 
-    self.PusherPushNotifications.endpointOverride  
-      ? self.PusherPushNotifications.endpointOverride   
-      : `https://${instanceId}.pushnotifications.pusher.com`,  
+  _endpoint: instanceId =>
+    self.PusherPushNotifications.endpointOverride
+      ? self.PusherPushNotifications.endpointOverride
+      : `https://${instanceId}.pushnotifications.pusher.com`,
 
-  _getVisibleClient: () => 
+  _getVisibleClient: () =>
     self.clients
       .matchAll({
-        type: 'window',   
-        includeUncontrolled: true, 
-      })   
-      .then(clients => clients.find(c => c.visibilityState === 'viisible')),  
-      
-  _hashVisibleClient: () => 
-    self.PusherPushNotifications._getVisibleClient().then( 
+        type: 'window',
+        includeUncontrolled: true,
+      })
+      .then(clients => clients.find(c => c.visibilityState === 'visible')),
+
+  _hasVisibleClient: () =>
+    self.PusherPushNotifications._getVisibleClient().then(
       client => client !== undefined
-    ),    
+    ),
 
-  _getFocusedClient: () =>  
+  _getFocusedClient: () =>
     self.clients
-      .matchAll({  
-        type: 'window', 
-        includeUncontrolled: true,  
-      })  
-      .then(clients => clients.find(c => c.focused === true)),   
+      .matchAll({
+        type: 'window',
+        includeUncontrolled: true,
+      })
+      .then(clients => clients.find(c => c.focused === true)),
 
-  _hasFocusedClient: () => 
-    self.PusherPushNotifications._getFocusedClient().then(  
-      client => client !== undefined  
-    ),  
+  _hasFocusedClient: () =>
+    self.PusherPushNotifications._getFocusedClient().then(
+      client => client !== undefined
+    ),
 
-  reportEvent: async ({ eventType, pusherMetadata }) => { 
-    const { 
-      instanceId, 
-      publishId,  
-      hasDisplayableContent,  
+  reportEvent: async ({ eventType, pusherMetadata }) => {
+    const {
+      instanceId,
+      publishId,
+      hasDisplayableContent,
       hasData,
-    } = pusherMetadata;  
-    if (!instanceId || !publishId) {   
-      // Can't report this notification, fail silently.  
-      return; 
+    } = pusherMetadata;
+    if (!instanceId || !publishId) {
+      // Can't report this notification, fail silently.
+      return;
     }
 
-    const deviceStateStore = new DeviceStateStore(instanceId);   
-    await deviceStateStore.connect();      
+    const deviceStateStore = new DeviceStateStore(instanceId);
+    await deviceStateStore.connect();
 
-    const deviceId = await deviceStateStore.getDeviceId();  
-    const userId = (await deviceStateStore.getUserId()) || null;  
+    const deviceId = await deviceStateStore.getDeviceId();
+    const userId = (await deviceStateStore.getUserId()) || null;
 
-    const appInBackground = !(await self.PusherPushNotifications._hasVisibleClient());   
+    const appInBackground = !(await self.PusherPushNotifications._hasVisibleClient());
 
-    const path = `${self.PusherPushNotifications.endpoint(
-      instanceId  
-    )}/reporting_api/v2/instances/${instanceId}/events`;  
-            
-    const options = {   
-      method: 'POST',  
-      path,  
+    const path = `${self.PusherPushNotifications._endpoint(
+      instanceId
+    )}/reporting_api/v2/instances/${instanceId}/events`;
+
+    const options = {
+      method: 'POST',
+      path,
       body: {
-        publishId,  
-        event: eventType,  
-        deviceId, 
-        userId,  
-        timestampSecs: Math.Floor(Date.now() / 1000),  
-        appInBackground,  
-        hasDisplayableContent, 
-        hasData,    
-      },  
-    };  
+        publishId,
+        event: eventType,
+        deviceId,
+        userId,
+        timestampSecs: Math.floor(Date.now() / 1000),
+        appInBackground,
+        hasDisplayableContent,
+        hasData,
+      },
+    };
 
-    try { 
-      await doRequest(options);  
-    } catch (_) {  
-      // Reporting is best effort, so we do nothing.   
-    }  
+    try {
+      await doRequest(options);
+    } catch (_) {
+      // Reporting is best effort, so we do nothing.
+    }
   },
-};   
+};
 
-self.addEventListener('push', e => {  
-  let payload; 
-  try { 
-    payload = e.data.json();  
-  } catch (_) { 
-    return; // Not a pusher notification
-  }   
-
-  if (!payload.data || !payload.data.pusher) { 
+self.addEventListener('push', e => {
+  let payload;
+  try {
+    payload = e.data.json();
+  } catch (_) {
     return; // Not a pusher notification
   }
 
-  // Report analytics event, best effort  
-  self.PusherPushNotifications.reportEvent({  
-    eventType: 'delivery',  
-    pusherMetadata: payload.data.pusher, 
+  if (!payload.data || !payload.data.pusher) {
+    return; // Not a pusher notification
+  }
+
+  // Report analytics event, best effort
+  self.PusherPushNotifications.reportEvent({
+    eventType: 'delivery',
+    pusherMetadata: payload.data.pusher,
   });
 
-  const customerPayload = { ...payload }; 
-  const customerData = {};  
-  Object.keys(customerPayload.data || {}).forEach(key => { 
-    if (key !== 'pusher') {  
-      customerData[key] = customerPayload.data[key];  
-    }  
-  });  
-  customerPayload.data = customerData;  
+  const customerPayload = { ...payload };
+  const customerData = {};
+  Object.keys(customerPayload.data || {}).forEach(key => {
+    if (key !== 'pusher') {
+      customerData[key] = customerPayload.data[key];
+    }
+  });
+  customerPayload.data = customerData;
 
-  const pusherMetadata = payload.data.pusher; 
+  const pusherMetadata = payload.data.pusher;
 
-  const handleNotifiication = async payloadFromCallback => { 
-    const hideNotificationifSiteHasFocus = 
-            payloadFromCallback.notification.hide_notification_if_site_has_focus ===  
-            true;  
+  const handleNotification = async payloadFromCallback => {
+    const hideNotificationIfSiteHasFocus =
+      payloadFromCallback.notification.hide_notification_if_site_has_focus ===
+      true;
     if (
-      hideNotificationifSiteHasFocus &&  
-            (await self.PusherPushNotifications._hasFocusedClient())  
-    ) { 
-      return;   
-    }   
+      hideNotificationIfSiteHasFocus &&
+      (await self.PusherPushNotifications._hasFocusedClient())
+    ) {
+      return;
+    }
 
-    const title = payloadFromCallback.notification.title || ''; 
-    const body = payloadFromCallback.notification.body || '';   
-    const icon = payloadFromCallback.notification.icon;  
+    const title = payloadFromCallback.notification.title || '';
+    const body = payloadFromCallback.notification.body || '';
+    const icon = payloadFromCallback.notification.icon;
 
-    const options = { 
-      body, 
-      icon,  
+    const options = {
+      body,
+      icon,
       data: {
         pusher: {
-          customerPayload: payloadFromCallback,  
-          pusherMetadata,  
-        }
-      }, 
+          customerPayload: payloadFromCallback,
+          pusherMetadata,
+        },
+      },
     };
 
-    return self.registration.showNotification(title, options); 
-  };  
+    return self.registration.showNotification(title, options);
+  };
 
-  if (self.PusherPushNotifications.onNotificationReceived) {  
-    self.PusherPushNotifications.onNotificationReceived({   
-      payload: customerPayload,   
-      pushEvent: e,  
-      handleNotifiication,  
-    });  
+  if (self.PusherPushNotifications.onNotificationReceived) {
+    self.PusherPushNotifications.onNotificationReceived({
+      payload: customerPayload,
+      pushEvent: e,
+      handleNotification,
+    });
   } else {
-    e.waitUntil(handleNotifiication(customerPayload));  
-  }  
-});  
+    e.waitUntil(handleNotification(customerPayload));
+  }
+});
 
-self.addEventListener('notificationclick', e => { 
-  const { pusher } = e.notification.data;  
+self.addEventListener('notificationclick', e => {
+  const { pusher } = e.notification.data;
 
-  const isPusherNotification = pusher !== undefined;      
-  if (isPusherNotification) { 
-    // Report analytics event, best effort  
-    self.PusherPushNotifications.reportEvent({   
-      eventType: 'open',  
-      pusherMetadata: pusher.pusherMetadata,  
-    });  
+  const isPusherNotification = pusher !== undefined;
+  if (isPusherNotification) {
+    // Report analytics event, best effort
+    self.PusherPushNotifications.reportEvent({
+      eventType: 'open',
+      pusherMetadata: pusher.pusherMetadata,
+    });
 
-    if (pusher.customerPayload.notification.deep_link) {   
-      e.waitUntil( 
+    if (pusher.customerPayload.notification.deep_link) {
+      e.waitUntil(
         clients.openWindow(pusher.customerPayload.notification.deep_link)
       );
     }
-    e.notifiication.close();  
+    e.notification.close();
   }
-});  
-
-
-
-
-
-
-
-// ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+});
