@@ -194,8 +194,8 @@ class Psbt {
       inputData.index === undefined
     ) {
       throw new Error(
-        `Invalid arguments for Psbt.addInput. ` +
-          `Requires single object with at least [hash] and [index]`,
+        'Invalid arguments for Psbt.addInput. ' +
+          'Requires single object with at least [hash] and [index]',
       );
     }
     checkInputsForPartialSig(this.data.inputs, 'addInput');
@@ -226,8 +226,8 @@ class Psbt {
       (outputData.address === undefined && outputData.script === undefined)
     ) {
       throw new Error(
-        `Invalid arguments for Psbt.addOutput. ` +
-          `Requires single object with at least [script or address] and [value]`,
+        'Invalid arguments for Psbt.addOutput. ' +
+          'Requires single object with at least [script or address] and [value]',
       );
     }
     checkInputsForPartialSig(this.data.inputs, 'addOutput');
@@ -360,11 +360,11 @@ class Psbt {
       const { hash, script } =
         sighashCache !== sig.hashType
           ? getHashForSig(
-              inputIndex,
-              Object.assign({}, input, { sighashType: sig.hashType }),
-              this.__CACHE,
-              true,
-            )
+            inputIndex,
+            Object.assign({}, input, { sighashType: sig.hashType }),
+            this.__CACHE,
+            true,
+          )
           : { hash: hashCache, script: scriptCache };
       sighashCache = sig.hashType;
       hashCache = hash;
@@ -668,15 +668,15 @@ class PsbtTransaction {
 }
 function canFinalize(input, script, scriptType) {
   switch (scriptType) {
-    case 'pubkey':
-    case 'pubkeyhash':
-    case 'witnesspubkeyhash':
-      return hasSigs(1, input.partialSig);
-    case 'multisig':
-      const p2ms = payments.p2ms({ output: script });
-      return hasSigs(p2ms.m, input.partialSig, p2ms.pubkeys);
-    default:
-      return false;
+  case 'pubkey':
+  case 'pubkeyhash':
+  case 'witnesspubkeyhash':
+    return hasSigs(1, input.partialSig);
+  case 'multisig':
+    const p2ms = payments.p2ms({ output: script });
+    return hasSigs(p2ms.m, input.partialSig, p2ms.pubkeys);
+  default:
+    return false;
   }
 }
 function checkCache(cache) {
@@ -745,8 +745,8 @@ function checkFees(psbt, cache, opts) {
       `Warning: You are paying around ${(satoshis / 1e8).toFixed(8)} in ` +
         `fees, which is ${feeRate} satoshi per byte for a transaction ` +
         `with a VSize of ${vsize} bytes (segwit counted as 0.25 byte per ` +
-        `byte). Use setMaximumFeeRate method to raise your threshold, or ` +
-        `pass true to the first arg of extractTransaction.`,
+        'byte). Use setMaximumFeeRate method to raise your threshold, or ' +
+        'pass true to the first arg of extractTransaction.',
     );
   }
 }
@@ -768,13 +768,13 @@ function checkInputsForPartialSig(inputs, action) {
       if (isAnyoneCanPay) whitelist.push('addInput');
       const hashMod = hashType & 0x1f;
       switch (hashMod) {
-        case transaction_1.Transaction.SIGHASH_ALL:
-          break;
-        case transaction_1.Transaction.SIGHASH_SINGLE:
-        case transaction_1.Transaction.SIGHASH_NONE:
-          whitelist.push('addOutput');
-          whitelist.push('setInputSequence');
-          break;
+      case transaction_1.Transaction.SIGHASH_ALL:
+        break;
+      case transaction_1.Transaction.SIGHASH_SINGLE:
+      case transaction_1.Transaction.SIGHASH_NONE:
+        whitelist.push('addOutput');
+        whitelist.push('setInputSequence');
+        break;
       }
       if (whitelist.indexOf(action) === -1) {
         throws = true;
@@ -937,7 +937,7 @@ function getHashForSig(inputIndex, input, cache, forValidate, sighashTypes) {
   if (sighashTypes && sighashTypes.indexOf(sighashType) < 0) {
     const str = sighashTypeToString(sighashType);
     throw new Error(
-      `Sighash type is not allowed. Retry the sign method passing the ` +
+      'Sighash type is not allowed. Retry the sign method passing the ' +
         `sighashTypes array of whitelisted types. Sighash type: ${str}`,
     );
   }
@@ -1002,7 +1002,7 @@ function getHashForSig(inputIndex, input, cache, forValidate, sighashTypes) {
       console.warn(
         'Warning: Signing non-segwit inputs without the full parent transaction ' +
           'means there is a chance that a miner could feed you incorrect information ' +
-          "to trick you into paying large fees. This behavior is the same as Psbt's predecesor " +
+          'to trick you into paying large fees. This behavior is the same as Psbt\'s predecesor ' +
           '(TransactionBuilder - now removed) when signing non-segwit scripts. You are not ' +
           'able to export this Psbt with toBuffer|toBase64|toHex since it is not ' +
           'BIP174 compliant.\n*********************\nPROCEED WITH CAUTION!\n' +
@@ -1023,33 +1023,33 @@ function getHashForSig(inputIndex, input, cache, forValidate, sighashTypes) {
 function getPayment(script, scriptType, partialSig) {
   let payment;
   switch (scriptType) {
-    case 'multisig':
-      const sigs = getSortedSigs(script, partialSig);
-      payment = payments.p2ms({
-        output: script,
-        signatures: sigs,
-      });
-      break;
-    case 'pubkey':
-      payment = payments.p2pk({
-        output: script,
-        signature: partialSig[0].signature,
-      });
-      break;
-    case 'pubkeyhash':
-      payment = payments.p2pkh({
-        output: script,
-        pubkey: partialSig[0].pubkey,
-        signature: partialSig[0].signature,
-      });
-      break;
-    case 'witnesspubkeyhash':
-      payment = payments.p2wpkh({
-        output: script,
-        pubkey: partialSig[0].pubkey,
-        signature: partialSig[0].signature,
-      });
-      break;
+  case 'multisig':
+    const sigs = getSortedSigs(script, partialSig);
+    payment = payments.p2ms({
+      output: script,
+      signatures: sigs,
+    });
+    break;
+  case 'pubkey':
+    payment = payments.p2pk({
+      output: script,
+      signature: partialSig[0].signature,
+    });
+    break;
+  case 'pubkeyhash':
+    payment = payments.p2pkh({
+      output: script,
+      pubkey: partialSig[0].pubkey,
+      signature: partialSig[0].signature,
+    });
+    break;
+  case 'witnesspubkeyhash':
+    payment = payments.p2wpkh({
+      output: script,
+      pubkey: partialSig[0].pubkey,
+      signature: partialSig[0].signature,
+    });
+    break;
   }
   return payment;
 }
@@ -1172,15 +1172,15 @@ function sighashTypeToString(sighashType) {
       : '';
   const sigMod = sighashType & 0x1f;
   switch (sigMod) {
-    case transaction_1.Transaction.SIGHASH_ALL:
-      text += 'SIGHASH_ALL';
-      break;
-    case transaction_1.Transaction.SIGHASH_SINGLE:
-      text += 'SIGHASH_SINGLE';
-      break;
-    case transaction_1.Transaction.SIGHASH_NONE:
-      text += 'SIGHASH_NONE';
-      break;
+  case transaction_1.Transaction.SIGHASH_ALL:
+    text += 'SIGHASH_ALL';
+    break;
+  case transaction_1.Transaction.SIGHASH_SINGLE:
+    text += 'SIGHASH_SINGLE';
+    break;
+  case transaction_1.Transaction.SIGHASH_NONE:
+    text += 'SIGHASH_NONE';
+    break;
   }
   return text;
 }
@@ -1278,7 +1278,7 @@ function getScriptFromUtxo(inputIndex, input, cache) {
     );
     return nonWitnessUtxoTx.outs[cache.__TX.ins[inputIndex].index].script;
   } else {
-    throw new Error("Can't find pubkey in input without Utxo data");
+    throw new Error('Can\'t find pubkey in input without Utxo data');
   }
 }
 function pubkeyInInput(pubkey, input, inputIndex, cache) {
@@ -1379,10 +1379,10 @@ function getMeaningfulScript(
     type: isP2SHP2WSH
       ? 'p2sh-p2wsh'
       : isP2SH
-      ? 'p2sh'
-      : isP2WSH
-      ? 'p2wsh'
-      : 'raw',
+        ? 'p2sh'
+        : isP2WSH
+          ? 'p2wsh'
+          : 'raw',
   };
 }
 function checkInvalidP2WSH(script) {

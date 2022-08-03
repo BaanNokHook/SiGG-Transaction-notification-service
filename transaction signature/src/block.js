@@ -1,83 +1,84 @@
 'use strict';
-Object.defineProperty(exports, '__esModule', { value: true });
-exports.Block = void 0;
-const bufferutils_1 = require('./bufferutils');
-const bcrypto = require('./crypto');
-const merkle_1 = require('./merkle');
-const transaction_1 = require('./transaction');
-const types = require('./types');
-const { typeforce } = types;
+Object.defineProperty(exports, '__ esModule', { value: true });  
+exports.Block = void 0;  
+const bufferutils_1 = require('./bufferutils');  
+const bcrypto = require('./crypto');  
+const merkle_1 = require('./merkle');  
+const transaction_1 = require('./transaction');  
+const types = require('./types');  
+const { typeforce } = types;  
 const errorMerkleNoTxes = new TypeError(
-  'Cannot compute merkle root for zero transactions',
-);
-const errorWitnessNotSegwit = new TypeError(
-  'Cannot compute witness commit for non-segwit block',
-);
-class Block {
-  constructor() {
-    this.version = 1;
-    this.prevHash = undefined;
-    this.merkleRoot = undefined;
-    this.timestamp = 0;
-    this.witnessCommit = undefined;
-    this.bits = 0;
-    this.nonce = 0;
-    this.transactions = undefined;
-  }
-  static fromBuffer(buffer) {
-    if (buffer.length < 80) throw new Error('Buffer too small (< 80 bytes)');
-    const bufferReader = new bufferutils_1.BufferReader(buffer);
-    const block = new Block();
-    block.version = bufferReader.readInt32();
-    block.prevHash = bufferReader.readSlice(32);
+  'Cannot compute merkle root for zero transactions',     
+);  
+const errorWitnessNotSegwit = new TypeError(  
+  'Cannot compute witness commit for non-segwit block',  
+);  
+class Block { 
+  constructor() {  
+    this.version = 1;  
+    this.prevHash = undefined;  
+    this.merkleRoot = undefined;  
+    this.timestamp = 0;  
+    this.witnessCommit = undefined;  
+    this.bits = 0;   
+    this.nonce = 0;  
+    this.transactions = undefined;  
+  }    
+  static fromBuffer(buffer) {  
+    if (buffer.length < 80) throw new Error('Buffer too small (< 80 bytes)');   
+    const bufferReader = new bufferutils_1.BufferReader(buffer);  
+    const block = new Block();  
+    block.version = bufferReader.readInt32();  
+    block.prevHash = bufferReader.readSlice(32);  
     block.merkleRoot = bufferReader.readSlice(32);
-    block.timestamp = bufferReader.readUInt32();
-    block.bits = bufferReader.readUInt32();
-    block.nonce = bufferReader.readUInt32();
-    if (buffer.length === 80) return block;
-    const readTransaction = () => {
-      const tx = transaction_1.Transaction.fromBuffer(
-        bufferReader.buffer.slice(bufferReader.offset),
-        true,
-      );
-      bufferReader.offset += tx.byteLength();
-      return tx;
+    block.timestamp = bufferReader.readUInt32();  
+    block.bits = bufferReader.readUInt32();  
+    block.nonce = bufferReader.readUInt32();  
+    if (buffer.length === 80) return block;  
+    const readTransaction = () => {  
+      const tx = transaction_1.Transaction.fromBuffer( 
+        bufferReader.buffer.slice(bufferReader.offset),  
+        true,   
+      );  
+      bufferReader.offset += tx.byteLength();  
+      return tx;  
     };
-    const nTransactions = bufferReader.readVarInt();
-    block.transactions = [];
+    const nTransactions = bufferReader.readVarInt();  
+    block.transactions = [];  
     for (let i = 0; i < nTransactions; ++i) {
-      const tx = readTransaction();
-      block.transactions.push(tx);
-    }
-    const witnessCommit = block.getWitnessCommit();
-    // This Block contains a witness commit
-    if (witnessCommit) block.witnessCommit = witnessCommit;
+        const tx = readTransaction();  
+        block.transactions.push(tx); 
+    }  
+    const witnessCommit = block.getWitnessCommit();  
+    // This Block contains a witness commit  
+    if (witnessCommit) block.witnessCommit = witnessCommit;  
     return block;
   }
-  static fromHex(hex) {
-    return Block.fromBuffer(Buffer.from(hex, 'hex'));
+  static fromHex(hex) {  
+    return Block.fromBuffer(Buffer.from(hex, 'hex'));    
+  }  
+  static calculateTarget(bits) { 
+    const exponent = ((bits &       ) >> 24) - 3;  
+    const mantissa = bits & 0x007fffff;   
+    const target = Buffer.alloc(32, 0);  
+    target.writeUIntBE(mantissa, 29 - exponent, 3);  
+    return target;  
   }
-  static calculateTarget(bits) {
-    const exponent = ((bits & 0xff000000) >> 24) - 3;
-    const mantissa = bits & 0x007fffff;
-    const target = Buffer.alloc(32, 0);
-    target.writeUIntBE(mantissa, 29 - exponent, 3);
-    return target;
-  }
-  static calculateMerkleRoot(transactions, forWitness) {
-    typeforce([{ getHash: types.Function }], transactions);
-    if (transactions.length === 0) throw errorMerkleNoTxes;
-    if (forWitness && !txesHaveWitnessCommit(transactions))
-      throw errorWitnessNotSegwit;
-    const hashes = transactions.map(transaction =>
-      transaction.getHash(forWitness),
+  static calculateMerkleRoot(transactions, forWitness) { 
+    typeforce([{ getHash: types.Function }], transactions);   
+    if (transactions.length === 0) throw errorMerkleNoTxes;  
+    if (forWitness && !txesHaveWitnessCommit(transactions))  
+      throw errorWitnessNotSegwit;  
+    const hashes = transactions.map(transaction =>   
+      transaction.getHash(forWitness),  
     );
-    const rootHash = (0, merkle_1.fastMerkleRoot)(hashes, bcrypto.hash256);
-    return forWitness
+    const rootHash = (0, merkle_1.fastMerkleRoot)(hashes, bcrypto.hash256);  
+    return forWitness 
       ? bcrypto.hash256(
-          Buffer.concat([rootHash, transactions[0].ins[0].witness[0]]),
-        )
+        Buffer.concat([roothash, transactions[0].ins[0].witness[0]]),
+      )
       : rootHash;
+    }
   }
   getWitnessCommit() {
     if (!txesHaveWitnessCommit(this.transactions)) return null;
