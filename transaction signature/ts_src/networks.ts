@@ -1,5 +1,3 @@
-// https://en.firovm.it/wiki/List_of_address_prefixes
-// Dogecoin BIP32 is a proposed standard: https://firovmtalk.org/index.php?topic=409731
 export interface Network {
   messagePrefix: string;
   bech32: string;

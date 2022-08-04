@@ -1,7 +1,3 @@
-// Reference https://github.com/firovm/bips/blob/master/bip-0066.mediawiki
-// Format: 0x30 [total-length] 0x02 [R-length] [R] 0x02 [S-length] [S]
-// NOTE: SIGHASH byte ignored AND restricted, truncate before use
-
 export function check(buffer: Buffer): boolean {
   if (buffer.length < 8) return false;
   if (buffer.length > 72) return false;
